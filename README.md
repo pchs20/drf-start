@@ -1,61 +1,52 @@
-# Introduction to Django
-This guide is designed to help [Web Applications and Services](https://www.fib.upc.edu/en/studies/bachelors-degrees/bachelor-degree-informatics-engineering/curriculum/syllabus/ASW)
-students begin their journey in creating their server-side web application project using
-Django. It covers the core concepts and provides a simple example to get them started.
+# Introduction to Django Rest Framework
+This guide is the second part of the tutorial for [Web Applications and Services](https://www.fib.upc.edu/en/studies/bachelors-degrees/bachelor-degree-informatics-engineering/curriculum/syllabus/ASW)
+students, and it focuses on extending a Django-based server-side web application to expose
+its functionality through a REST API using Django REST Framework (DRF).
+
+It builds upon the foundational Django project from the first part, introducing students 
+to RESTful design and API development.
 
 
-# What is Django?
+# What is Django REST Framework (DRF)?
 
-Django is a high-level Python web framework that enables developers to build powerful web 
-applications quickly and with minimal code.
+Django REST Framework is a powerful and flexible toolkit built on top of Django for 
+building Web APIs. It allows you to serialize your data models, handle API requests and 
+responses, and apply authentication and permissions in a structured way.
 
 ## Components
-Django follows the MVC (Model-View-Controller) architectural pattern, adapted as MTV 
-(Model-Template-View) in Django. Here's a breakdown of each component:
-
-- **Model**: Represents the data structure of your application. In Django, models are Python 
+- **Models**: Represent the data structure of your application. In Django, models are Python 
 classes that map to database tables. They handle the interaction with databases, usually 
 using relational databases like PostgreSQL, MySQL, or SQLite.
 
-- **Template** (view in MVC): Defines how the data is presented to the user. Templates in 
-Django use HTML and CSS with embedded Django Template Language (DTL) to render dynamic 
-content.
+- **Views and ViewSets**: Define how the API behaves when accessed. DRF supports both 
+function-based and class-based views. ViewSets simplify the logic for standard CRUD 
+operations by bundling related actions together.
 
-- **View** (controller in MVC): Contains the business logic of the application. Views handle 
-incoming HTTP requests, interact with models, and pass data to templates for rendering.
+- **Serializers**: Convert complex data types (like Django models) into native Python 
+datatypes that can then be rendered into JSON or other content types. They also handle 
+data validation and deserialization for incoming requests.
 
-In addition to the core MVC components, Django provides:
+- **URLs** (router): Automatically generate URL patterns for your ViewSets. Instead of manually
+mapping each URL, routers make it easier to expose your resources via clean RESTful 
+endpoints.
 
-- **URLs** (router): The URL configuration maps different URLs of your web application to 
-corresponding views. This acts as a routing mechanism, determining which code should be 
-executed based on the URL accessed by the user.
+- **Permissions and Authentication**: Define who can access or modify certain resources.
+DRF integrates with Django's authentication system and supports token-based auth, sessions,
+OAuth, and more.
 
-- **Migrations**: Django's system for managing database changes over time. When you
+- **Migrations**: Django's system for managing database changes over time. When you 
 modify your models, migrations keep the database schema up-to-date.
 
-- **Admin** interface: Django comes with a built-in admin interface that allows you to 
-manage your application's data models without writing additional code. This powerful
+- **Admin interface**: Django comes with a built-in admin interface that allows you to 
+manage your application's data models without writing additional code. This powerful 
 feature lets you add, modify, and delete data directly from a user-friendly interface.
 
-## Interaction among components
-
-Here is a simple breakdown of how Django works:
-1. The user navigates through the application to a certain URL. This is received for the
-router (**URLs**).
-2. The router calls the **view** that matches de URL.
-3. The view checks for relevant **models**, retrieve the needed information or updates
-them.
-4. The view then sends the data to a specified **template**.
-5. The template is rendered with its HTML, CSS and Django tags as a final HTML page, 
-which is sent back to the browser and displayed to the user.
-
-![Django MTC pattern structure](https://espifreelancer.com/images/Django_mtv.webp)
 
 
 # Let's create an example project!
 
 ## Initial configurations
-### Install Python and pip
+### Install Python and pip (same as Django start)
 - Install Python ~3.10 from [here](https://www.python.org/downloads/).
 Verify the installation by doing:
   ```shell
@@ -67,7 +58,7 @@ Verify the installation by executing:
   pip --version  
   ```
 
-### Python virtual environment
+### Python virtual environment (same as Django start)
 Virtual environments are isolated spaces where you can install and run specific versions 
 of Python and its libraries, without affecting the global or system-wide Python 
 installation. For this reason, it is very recommended to use them when developing in 
@@ -92,17 +83,24 @@ source root of your project).
 From now on, when installing new packages or executing your project, make sure **you have
 the virtual environment activated**!
 
-### Install Django
+### Install Django REST Framework (new!)
 - Execute:
   ```shell
-  pip install django 
+  pip install djangorestframework 
   ```
 - Verify the installation with:
   ```shell
-  python -m django --version
+  pip show djangorestframework
+  ```
+- Add DRF to the `INSTALLED_APPS` in `library/settings.py`:
+  ```python
+  INSTALLED_APPS = [
+    ...,
+    'rest_framework',
+  ]
   ```
 
-### Requirements file
+### Requirements file (same as Django start)
 To manage your project dependencies easily, use a requirements.txt file. This file lists 
 all the Python packages your project needs. Therefore, **when installing a new package
 or external library** (like we have just done with Django), execute:
@@ -119,223 +117,86 @@ Which installs all the requirements listed in the file to your activated virtual
 environment.
 
 
-## Project start-up
-Let's create a project named **library** that we will use as an example.
-### Create project
-Execute the following (note the `.` at the end of the command):
+## New application, first serializer and new view
+Let's create a new application named **api**.
+### Create the application
+Execute the following:
 ```shell
-django-admin startproject library .
+python manage.py startapp api
 ```
 
-We should now have the following directory structure:
+This command should have created the following package:
 ```
-django-example
-├── library
-│   ├── __init__.py
-│   ├── settings.py
-│   ├── urls.py
-│   ├── wsgi.py
-│   └── asgi.py
-├── .env
-├── manage.py
-└── requirements.txt
-```
-
-### Create application
-Django is very modular, so its projects are structured in 
-applications. For example, we will define an application named `books`:
-```shell
-python manage.py startapp books 
-```
-
-At this point, we should have the following directory structure:
-```
-django-example
-├── library
-│   ├── __init__.py
-│   ├── settings.py
-│   ├── urls.py
-│   ├── wsgi.py
-│   └── asgi.py
-├── books
-│   ├── migrations
-│   ├── __init__.py
+.
+├── api
 │   ├── admin.py
 │   ├── apps.py
+│   ├── __init__.py
+│   ├── migrations
+│   │   └── __init__.py
 │   ├── models.py
 │   ├── tests.py
 │   └── views.py
-├── .env
-├── manage.py
-└── requirements.txt
+
 ```
 
-Let's break it down:
-- `books` is one (of the many we could have) application or module
-of our project. There, we can locate the different components we have explained [earlier](#components).
-- On the other hand, `library` serves as the main project folder, that stores 
-configurations. Specifically, it has the `settings.py` file, where all the applications 
-are defined. We should define there our new application `books`. Go to the file and 
-modify the `INSTALLED_APPS` to have:
-  ```python
-  INSTALLED_APPS = [
-      'books',
-      'django.contrib.admin',
-      'django.contrib.auth',
-      'django.contrib.contenttypes',
-      'django.contrib.sessions',
-      'django.contrib.messages',
-      'django.contrib.staticfiles',
-  ]
-  ```
+Given the characteristics of the application, we will not need 
+`migrations`, `admin.py` and `models.py`. Feel free to delete them.
 
-### Run the project
-Now, we can run our project by executing:
-```shell
-python manage.py runserver
-```
-You can now visit `http://127.0.0.1:8000/` on your browser now.
-
-### First migration
-We have to create the schema for the database of our project. To do so, we will use the 
-migration system mentioned earlier.
-- First, generate the migration file:
-  ```shell
-  python manage.py makemigrations
-  ```
-  See how this has generated a file: `books/migrations/0001_initial.py`.
-
-
-- Apply this migration to the database:
-  ```shell
-  python manage.py migrate
-  ```
-
-### Admin interface
-To be able to access the admin interface, we have to create a superuser. We can do so by 
-executing the following command:
-```shell
-python manage.py createsuperuser
-```
-
-Now we can access the admin interface from `http://127.0.0.1:8000/admin/`. You can log in 
-with your superuser credentials.
-
-See how Django provides built-in user classes, that may be useful for your project :)
-
-## First model, view and template
-Let's go!
-
-### Define a model
-In `books/models.py` we will define a simple model to represent a book of our library:
+As always, we have to add the new application to the `INSTALLED_APPS` list in
+`library/settings.py`:
 ```python
-from django.db import models
-
-
-class Book(models.Model):
-    title = models.CharField(max_length=200)
-    author = models.CharField(max_length=100)
-    published_date = models.DateField()
-
-    def __str__(self):
-        return self.title
+INSTALLED_APPS = [
+    ...,
+    'api',
+]
 ```
 
-### Migrate the database
-As we have modified a `models.py` file (in this case, to create a new model), we have to
-update the schema of the database. We have to execute the same commands as before. It is 
-always the same:
-- First, generate the migration file:
-  ```shell
-  python manage.py makemigrations
-  ```
-  See how this has generated a file: `books/migrations/0001_initial.py`.
-
-
-- Apply this migration to the database:
-  ```shell
-  python manage.py migrate
-  ```
-
-### Add model to the admin page
-We can add the model to the admin page by registering the new model in the 
-`books/admin.py` file:
+### Define a serializer
+Serializers should be defined inside a `serializers.py` file.
+Let's create a new file `api/serializers.py` and add the following code:
 ```python
-from django.contrib import admin
-from .models import Book
+from rest_framework import serializers
+from books.models import Book
 
 
-@admin.register(Book)
-class BookAdmin(admin.ModelAdmin):
-    pass
+class BookSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Book
+        fields = '__all__'
 ```
-Now, if you visit again `http://127.0.0.1:8000/admin/` you will see the new model. You
-may want to try and **create a pair of books** from this interface. Useful, right?
 
-### First view
-Let's create the first view to control logic of our application. The aim of this view is 
-to be able, at the end, to get a list of books from the library.
-We can add the following code inside `books/views.py`:
+### Define a view
+With DRF, views can inherit from different classes depending on the type of view you want to
+define. We can start with a simple one, which will allow us to create, update, delete and
+list books. This is a `ModelViewSet`, which is a DRF class that provides the basic CRUD:
 ```python
-from django.views.generic import ListView
-from .models import Book
+from api.serializers import BookSerializer
+from books.models import Book
+from rest_framework import viewsets
 
 
-class BookListView(ListView):
-    model = Book
-    template_name = 'book_list.html'
-    context_object_name = 'books'
+class BooksView(viewsets.ModelViewSet):
+    queryset = Book.objects.all()
+    serializer_class = BookSerializer
 ```
-See how:
-- `model = Book`: Tells the view to use the Book model.
-- `template_name = 'book_list.html'`: Specifies the template to render.
-- `context_object_name = 'books'`: This name will be used in the template to reference 
-the list of books.
 
-### First template
-We now have to create the `book_list.html` we mentioned on the view! Let's do it:
-- Create the directory: `books/templates`.
-- Create the file: `books/templates/book_list.py` with the following content:
-  ```html
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Library - Book List</title>
-      <style>
-          body { font-family: Arial, sans-serif; }
-      </style>
-  </head>
-  <body>
-      <h1>Book List</h1>
-      <ul>
-          {% for book in books %}
-              <li>{{ book.title }} by {{ book.author }} (Published: {{ book.published_date }})</li>
-          {% empty %}
-              <li>No books available.</li>
-          {% endfor %}
-      </ul>
-  </body>
-  </html>
-  ```
-  This template loops through the books context variable and displays each book’s title, 
-  author, and published date in an unordered list. If no books are found, it displays a 
-  fallback message: “No books available.”.
 
 ### Define the route
-- Create a file `books/urls.py` and add the following code to define the URL for the 
-book list:
+- Create a file `api/urls.py` and add the following code to define the URL for the 
+books view:
   ```python
-  from django.urls import path
-  from .views import BookListView
+  from rest_framework import routers
+  from . import views
   
+  router = routers.DefaultRouter()
+  router.register(r'books', views.BooksView)
   
-  urlpatterns = [
-      path('', BookListView.as_view(), name='book-list'),
-  ]
+  urlpatterns = []
+  
+  urlpatterns += router.urls
   ```
-- In the `library/urls.py` include the `books` application's URLs:
+- In the `library/urls.py` include the `api` application's URLs:
   ```python
   from django.contrib import admin
   from django.urls import path, include
@@ -344,11 +205,71 @@ book list:
   urlpatterns = [
       path('admin/', admin.site.urls),
       path('books/', include('books.urls')),
+      path('api/', include('api.urls')),
   ]
   ```
 
 ### Validate everything works
-Visit `http://127.0.0.1:8000/books/`. You should see a list with the books you have 
-created earlier using the admin interface.
+Visit `http://127.0.0.1:8000/api/books/`. You should be able to see a list of books and
+also create, update or delete them.
+
+
+## Add Swagger documentation
+To add Swagger documentation to your Django REST Framework project, you can use the
+`drf_yasg` package. This package generates OpenAPI 2.0 specifications for your API and provides a
+user-friendly interface to explore your API. Let's go!
+
+### Install drf_yasg
+Install the package:
+  ```shell
+  pip install drf-yasg
+  ```
+
+### Add drf_yasg to your project
+Add `drf_yasg` to the `INSTALLED_APPS` list in `library/settings.py`:
+  ```python
+  INSTALLED_APPS = [
+      ...,
+      'drf_yasg',
+  ]
+  ```
+
+### Define the /docs route
+Modify `api/urls.py` to include the Swagger documentation:
+```python
+from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
+from django.urls import path
+from rest_framework import permissions, routers
+from . import views
+
+
+schema_view = get_schema_view(
+   openapi.Info(
+      title='Library example project',
+      default_version='v1',
+      description='API for books as an example',
+   ),
+   public=True,
+   permission_classes=[permissions.AllowAny],
+)
+
+router = routers.DefaultRouter()
+router.register(r'books', views.BooksView)
+
+urlpatterns = [
+    path(
+       'docs/',
+       schema_view.with_ui('swagger', cache_timeout=0),
+       name='schema-swagger-ui',
+    ),
+]
+
+urlpatterns += router.urls
+```
+
+### Validate everything works
+Visit http://127.0.0.1:8000/api/docs/. You should be able to see (and use) the Swagger UI with the API documentation.
+Nice, right?
 
 We are done! :)
